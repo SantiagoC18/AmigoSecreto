@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Amigo Secreto 🎁</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- SweetAlert2 -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <!-- Canvas Confetti -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.4/confetti.browser.min.js"></script>
+  
+  <style>
+    .perspective { perspective: 1000px; }
+    .transform-style-3d { transform-style: preserve-3d; }
+    .backface-hidden { backface-visibility: hidden; }
+    .rotate-y-180 { transform: rotateY(180deg); }
+    body { background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%); min-height: 100vh; }
+  </style>
+</head>
+<body class="text-white font-sans flex flex-col items-center justify-between p-4 sm:p-6">
+
+  <!-- Encabezado (3 clics rápidos para abrir Admin) -->
+  <header class="text-center my-6">
+    <h1 id="mainTitle" class="text-4xl sm:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-red-500 via-pink-500 to-amber-400 drop-shadow-lg mb-2 select-none cursor-pointer" title="Haz 3 clics para abrir el panel de Admin">
+      🎁 Amigo Secreto 🎁
+    </h1>
+    <p class="text-slate-300 text-sm sm:text-base max-w-md mx-auto">
+      Selecciona tu nombre, confirma tu identidad y destapa tu tarjeta numerada.
+    </p>
+  </header>
+
+  <!-- Panel Admin Inicial -->
+  <div id="adminPanel" class="w-full max-w-md bg-slate-800/80 backdrop-blur border border-slate-700 p-6 rounded-2xl shadow-2xl mb-8">
+    <h2 class="text-xl font-bold mb-4 text-amber-400 text-center">Lista de Participantes (22)</h2>
+    <textarea id="namesInput" rows="8" class="w-full p-3 rounded-xl bg-slate-900 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-red-500 mb-4 font-mono text-sm">Arfenes
+Ledis
+Chava
+Sebastián
+Santiago
+Fabián
+Victor julio
+Zoraida
+Jeisson
+Tatiana
+Eulises
+Karen
+Sahariana
+Edwin
+Loraine
+Anna
+Alex
+Sofia
+Maria José
+Edward
+Luz
+Diego</textarea>
+    <button onclick="iniciarSorteo()" class="w-full bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-500 hover:to-pink-500 text-white font-bold py-3 px-4 rounded-xl shadow-lg transition duration-200">
+      🎲 Mezclar y Crear Juego Realtime
+    </button>
+  </div>
+
+  <!-- Vista Principal -->
+  <div id="gameView" class="w-full max-w-5xl flex flex-col items-center hidden mb-8">
+    
+    <div id="alreadyPickedBanner" class="w-full max-w-md bg-emerald-900/60 border border-emerald-500/50 p-4 rounded-2xl shadow-lg mb-6 text-center hidden">
+      <p class="text-emerald-300 font-bold text-sm">✅ Ya has seleccionado tu tarjeta</p>
+      <p id="userClaimSummary" class="text-xs text-slate-300 mt-1"></p>
+      <button onclick="verMiAsignacion()" class="mt-2 text-xs bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-1 px-3 rounded-lg shadow transition">
+        👁️ Ver mi Amigo Secreto de nuevo
+      </button>
+    </div>
+
+    <div id="userSelectBox" class="w-full max-w-md bg-slate-800/90 border border-amber-500/30 p-4 rounded-2xl shadow-lg mb-6 text-center">
+      <label for="userSelect" class="block text-amber-300 font-bold mb-2">👤 1. Selecciona tu Nombre:</label>
+      <select id="userSelect" class="w-full p-3 rounded-xl bg-slate-900 border border-slate-700 text-white font-semibold focus:outline-none focus:ring-2 focus:ring-amber-400">
+        <option value="">-- Selecciona quién eres --</option>
+      </select>
+    </div>
+
+    <main id="boardContainer" class="w-full grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 sm:gap-6">
+    </main>
+  </div>
+
+  <!-- Modal Admin -->
+  <div id="adminModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-slate-800 border border-slate-700 rounded-2xl w-full max-w-2xl p-6 shadow-2xl max-h-[90vh] flex flex-col">
+      <div class="flex justify-between items-center mb-4 border-b border-slate-700 pb-3">
+        <h3 class="text-xl font-bold text-amber-400">🔒 Panel de Control (Administrador)</h3>
+        <button onclick="cerrarAdminModal()" class="text-slate-400 hover:text-white text-2xl font-bold">&times;</button>
+      </div>
+
+      <div class="overflow-y-auto flex-1 mb-4">
+        <h4 class="text-sm font-semibold text-slate-300 mb-2">Historial de Registros y Control Individual:</h4>
+        <div id="adminLogList" class="space-y-2 text-sm font-mono"></div>
+      </div>
+
+      <div class="pt-3 border-t border-slate-700 flex justify-between gap-4">
+        <button onclick="reiniciarJuego()" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-xl text-sm transition">
+          🔄 Reiniciar Todo el Juego
+        </button>
+        <button onclick="cerrarAdminModal()" class="bg-slate-700 hover:bg-slate-600 text-white font-bold py-2 px-4 rounded-xl text-sm transition">
+          Cerrar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <footer class="text-center text-xs text-slate-500 mb-4">
+    Tiempo real provisto por Firebase Database • Presiona Ctrl+Shift+A para Panel Admin
+  </footer>
+
+  <!-- Firebase SDKs -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getDatabase, ref, set, onValue, update } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyDw52pSnMoIko5t7bKHBunWHGtaCO5cQ7Q",
+      authDomain: "amigo-secreto-rifa.firebaseapp.com",
+      databaseURL: "https://amigo-secreto-rifa-default-rtdb.firebaseio.com",
+      projectId: "amigo-secreto-rifa",
+      storageBucket: "amigo-secreto-rifa.firebasestorage.app",
+      messagingSenderId: "724837108279",
+      appId: "1:724837108279:web:db0e5e8349926ba1d7cdb2"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    window.db = db;
+    window.dbRef = ref;
+    window.dbSet = set;
+    window.dbUpdate = update;
+
+    const gameRef = ref(db, 'amigoSecreto');
+    onValue(gameRef, (snapshot) => {
+      const data = snapshot.val();
+      if (data && data.cards) {
+        document.getElementById('adminPanel').classList.add('hidden');
+        document.getElementById('gameView').classList.remove('hidden');
+        
+        const listaNombres = data.participants || DEFAULT_NAMES;
+        actualizarDropdownDisponibles(listaNombres, data.cards);
+
+        renderCards(data.cards);
+        renderAdminLogs(data.cards);
+        verificarBloqueoLocal(data.cards);
+      } else {
+        document.getElementById('adminPanel').classList.remove('hidden');
+        document.getElementById('gameView').classList.add('hidden');
+        localStorage.removeItem('amigoSecreto_usuario');
+        localStorage.removeItem('amigoSecreto_tarjeta');
+      }
+    });
+  </script>
+
+  <script>
+    const DEFAULT_NAMES = [
+      "Arfenes", "Ledis", "Chava", "Sebastián", "Santiago", "Fabián", 
+      "Victor julio", "Zoraida", "Jeisson", "Tatiana", "Eulises", "Karen", 
+      "Sahariana", "Edwin", "Loraine", "Anna", "Alex", "Sofia", 
+      "Maria José", "Edward", "Luz", "Diego"
+    ];
+
+    let currentCardsData = {};
+
+    let titleClicks = 0;
+    document.getElementById('mainTitle').addEventListener('click', () => {
+      titleClicks++;
+      if (titleClicks >= 3) {
+        titleClicks = 0;
+        abrirAdminModal();
+      }
+      setTimeout(() => titleClicks = 0, 1500);
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.ctrlKey && e.shiftKey && (e.key === 'A' || e.key === 'a')) {
+        e.preventDefault();
+        abrirAdminModal();
+      }
+    });
+
+    function abrirAdminModal() {
+      document.getElementById('adminModal').classList.remove('hidden');
+    }
+
+    function cerrarAdminModal() {
+      document.getElementById('adminModal').classList.add('hidden');
+    }
+
+    function actualizarDropdownDisponibles(todosParticipantes, cardsObj) {
+      const select = document.getElementById('userSelect');
+      const selectedValue = select.value;
+
+      const reclamados = Object.values(cardsObj)
+        .map(c => c.claimedBy)
+        .filter(n => n !== null && n !== undefined);
+
+      const disponibles = todosParticipantes.filter(nombre => !reclamados.includes(nombre));
+
+      select.innerHTML = '<option value="">-- Selecciona quién eres --</option>';
+
+      if (disponibles.length === 0) {
+        select.innerHTML = '<option value="">🎉 ¡Todos los participantes ya eligieron!</option>';
+      } else {
+        disponibles.forEach(nombre => {
+          const option = document.createElement('option');
+          option.value = nombre;
+          option.textContent = nombre;
+          select.appendChild(option);
+        });
+      }
+
+      if (disponibles.includes(selectedValue)) {
+        select.value = selectedValue;
+      }
+    }
+
+    // Algoritmo de Derangement: Mezcla Fisher-Yates pura
+    function shuffleArray(array) {
+      let result = [...array];
+      for (let i = result.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [result[i], result[j]] = [result[j], result[i]];
+      }
+      return result;
+    }
+
+    function iniciarSorteo() {
+      const input = document.getElementById('namesInput').value.trim();
+      const nombres = input ? input.split('\n').map(n => n.trim()).filter(n => n.length > 0) : DEFAULT_NAMES;
+
+      if (nombres.length < 2) {
+        Swal.fire('Atención', 'Necesitas al menos 2 participantes.', 'warning');
+        return;
+      }
+
+      // Mezclamos la lista de nombres que van DENTRO de las tarjetas
+      const asignaciones = shuffleArray(nombres);
+      const cards = {};
+
+      nombres.forEach((_, index) => {
+        cards[index + 1] = {
+          number: index + 1,
+          assignedTo: asignaciones[index], // Nombre del regalo contenido dentro de la tarjeta #index+1
+          claimedBy: null,                 // Quién la abrió (Inicialmente NADIE)
+          revealed: false
+        };
+      });
+
+      localStorage.removeItem('amigoSecreto_usuario');
+      localStorage.removeItem('amigoSecreto_tarjeta');
+
+      window.dbSet(window.dbRef(window.db, 'amigoSecreto'), { 
+        cards,
+        participants: nombres 
+      })
+      .then(() => {
+        Swal.fire('¡Éxito!', 'El juego se ha creado en tiempo real.', 'success');
+      })
+      .catch(err => Swal.fire('Error', err.message, 'error'));
+    }
+
+    function renderCards(cardsObj) {
+      currentCardsData = cardsObj;
+      const container = document.getElementById('boardContainer');
+      container.innerHTML = '';
+
+      Object.keys(cardsObj).forEach(key => {
+        const card = cardsObj[key];
+        const cardElem = document.createElement('div');
+        cardElem.className = 'perspective h-40 cursor-pointer';
+        
+        const isRevealed = card.revealed;
+
+        cardElem.innerHTML = `
+          <div id="card-inner-${card.number}" class="w-full h-full relative transform-style-3d transition-transform duration-700 ease-in-out ${isRevealed ? 'rotate-y-180' : ''}">
+            
+            <div onclick="confirmPick(${card.number}, ${isRevealed})" class="absolute w-full h-full backface-hidden bg-gradient-to-br from-red-600 to-red-800 rounded-2xl border-2 border-amber-400/60 flex flex-col items-center justify-center shadow-xl hover:scale-105 transition-transform duration-200">
+              <span class="text-4xl font-extrabold text-amber-300 drop-shadow">#${card.number}</span>
+              <span class="text-xs text-red-200 mt-2 font-medium">✨ Toca para destapar</span>
+            </div>
+
+            <div class="absolute w-full h-full backface-hidden rotate-y-180 bg-slate-900 border-2 border-slate-700 rounded-2xl flex flex-col items-center justify-center p-3 text-center shadow-inner">
+              <span class="text-xs text-slate-500 font-bold uppercase tracking-wider mb-1">Tarjeta Tomada</span>
+              <span class="text-2xl">🔒</span>
+              <span class="text-xs text-amber-400 font-bold mt-1 truncate max-w-full px-1">${card.claimedBy || 'Reclamada'}</span>
+            </div>
+
+          </div>
+        `;
+        container.appendChild(cardElem);
+      });
+    }
+
+    function verificarBloqueoLocal(cardsObj) {
+      const savedUser = localStorage.getItem('amigoSecreto_usuario');
+      const savedCard = localStorage.getItem('amigoSecreto_tarjeta');
+
+      if (savedUser && savedCard && cardsObj && cardsObj[savedCard]) {
+        const cardInfo = cardsObj[savedCard];
+        
+        if (!cardInfo.revealed || cardInfo.claimedBy !== savedUser) {
+          localStorage.removeItem('amigoSecreto_usuario');
+          localStorage.removeItem('amigoSecreto_tarjeta');
+          document.getElementById('userSelectBox').classList.remove('hidden');
+          document.getElementById('alreadyPickedBanner').classList.add('hidden');
+          return;
+        }
+
+        document.getElementById('userSelectBox').classList.add('hidden');
+        const banner = document.getElementById('alreadyPickedBanner');
+        banner.classList.remove('hidden');
+        document.getElementById('userClaimSummary').textContent = `${savedUser} - Tarjeta #${savedCard}`;
+      } else {
+        document.getElementById('userSelectBox').classList.remove('hidden');
+        document.getElementById('alreadyPickedBanner').classList.add('hidden');
+      }
+    }
+
+    function verMiAsignacion() {
+      const savedCard = localStorage.getItem('amigoSecreto_tarjeta');
+      const savedUser = localStorage.getItem('amigoSecreto_usuario');
+      
+      if (savedCard && currentCardsData[savedCard]) {
+        const data = currentCardsData[savedCard];
+        Swal.fire({
+          title: `¡Hola ${savedUser}! 👋`,
+          html: `<p class="text-lg text-slate-300">Tu Amigo Secreto es:</p>
+                 <p class="text-3xl font-black text-red-500 mt-2 underline decoration-wavy decoration-amber-400">${data.assignedTo}</p>`,
+          icon: 'info',
+          confirmButtonText: 'Cerrar',
+          confirmButtonColor: '#10b981'
+        });
+      }
+    }
+
+    function confirmPick(cardNumber, isRevealed) {
+      const savedUser = localStorage.getItem('amigoSecreto_usuario');
+      if (savedUser) {
+        Swal.fire('Acceso Restringido', `Ya has seleccionado una tarjeta previamente (${savedUser}).`, 'warning');
+        return;
+      }
+
+      if (isRevealed) {
+        Swal.fire('Tarjeta Deshabilitada', 'Esta tarjeta ya fue elegida por otra persona.', 'info');
+        return;
+      }
+
+      const selectedUser = document.getElementById('userSelect').value;
+
+      if (!selectedUser) {
+        Swal.fire('Atención', 'Por favor selecciona tu nombre en la lista desplegable antes de elegir una tarjeta.', 'warning');
+        return;
+      }
+
+      // 🛡️ VALIDACIÓN EXTRA: Si por casualidad la tarjeta contiene el mismo nombre que la persona eligiendo, 
+      // le pide amablemente elegir otro número para garantizar 0% autoregalo.
+      const cardInfo = currentCardsData[cardNumber];
+      if (cardInfo && cardInfo.assignedTo === selectedUser) {
+        Swal.fire({
+          title: '🎰 ¡Casi!',
+          text: 'Esta tarjeta justo contenía tu propio nombre. Por favor selecciona cualquier otro número.',
+          icon: 'info',
+          confirmButtonColor: '#f59e0b'
+        });
+        return;
+      }
+
+      Swal.fire({
+        title: `¿Confirmas que eres ${selectedUser}?`,
+        html: `Vas a destapar la <b>Tarjeta #${cardNumber}</b>.<br><span class="text-xs text-slate-400">Si este no es tu nombre, presiona "Corregir".</span>`,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#10b981',
+        cancelButtonColor: '#ef4444',
+        confirmButtonText: 'Sí, Aceptar',
+        cancelButtonText: 'Corregir Nombre'
+      }).then((result) => {
+        if (result.isConfirmed) {
+          revealCard(cardNumber, selectedUser);
+        }
+      });
+    }
+
+    function revealCard(cardNumber, selectedUser) {
+      const cardInfo = currentCardsData[cardNumber];
+      if (!cardInfo) return;
+
+      if (cardInfo.revealed) {
+        Swal.fire('Atención', 'Esta tarjeta acaba de ser reclamada por alguien más.', 'warning');
+        return;
+      }
+
+      const cardRef = window.dbRef(window.db, `amigoSecreto/cards/${cardNumber}`);
+
+      window.dbUpdate(cardRef, { 
+        revealed: true,
+        claimedBy: selectedUser
+      }).then(() => {
+        localStorage.setItem('amigoSecreto_usuario', selectedUser);
+        localStorage.setItem('amigoSecreto_tarjeta', cardNumber);
+
+        if (typeof confetti === 'function') {
+          try {
+            confetti({
+              particleCount: 140,
+              spread: 80,
+              origin: { y: 0.6 }
+            });
+          } catch (e) {
+            console.warn('Confetti no disponible');
+          }
+        }
+
+        Swal.fire({
+          title: `🎉 ¡Hola ${selectedUser}! 🎉`,
+          html: `<p class="text-lg text-slate-300 mt-2">Tu Amigo Secreto es:</p>
+                 <p class="text-3xl font-black text-red-500 my-4 underline decoration-wavy decoration-amber-400">${cardInfo.assignedTo}</p>`,
+          icon: 'success',
+          confirmButtonText: 'Entendido, Guardar Secreto',
+          confirmButtonColor: '#10b981',
+          allowOutsideClick: false
+        }).then(() => {
+          window.location.reload();
+        });
+      }).catch((err) => {
+        Swal.fire('Error', 'Error al actualizar la tarjeta: ' + err.message, 'error');
+      });
+    }
+
+    function renderAdminLogs(cardsObj) {
+      const list = document.getElementById('adminLogList');
+      list.innerHTML = '';
+
+      Object.keys(cardsObj).forEach(key => {
+        const card = cardsObj[key];
+        const item = document.createElement('div');
+        item.className = 'p-3 rounded-xl bg-slate-900 border border-slate-700 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2';
+        
+        if (card.revealed) {
+          item.innerHTML = `
+            <div class="flex flex-col">
+              <span class="text-xs text-slate-400">Tarjeta <b>#${card.number}</b></span>
+              <span>Reclamada por: <b class="text-amber-400">${card.claimedBy}</b> ➔ Le regala a: <b class="text-emerald-400">${card.assignedTo}</b></span>
+            </div>
+            <button onclick="resetearTarjeta(${card.number})" class="bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs py-1 px-3 rounded-lg transition self-end sm:self-center">
+              🔄 Resetear solo esta
+            </button>
+          `;
+        } else {
+          item.innerHTML = `
+            <div class="flex flex-col">
+              <span class="text-slate-500">Tarjeta #${card.number} ➔ Sin reclamar</span>
+              <span class="text-xs text-slate-600">(Contiene internamente a: ${card.assignedTo})</span>
+            </div>
+            <span class="text-xs text-slate-600 italic">Disponible</span>
+          `;
+        }
+        list.appendChild(item);
+      });
+    }
+
+    function resetearTarjeta(cardNumber) {
+      Swal.fire({
+        title: `¿Resetear Tarjeta #${cardNumber}?`,
+        text: "La tarjeta volverá a quedar disponible y la persona podrá seleccionar de nuevo.",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d97706',
+        confirmButtonText: 'Sí, resetear esta'
+      }).then((result) => {
+        if (result.isConfirmed) {
+          const cardRef = window.dbRef(window.db, `amigoSecreto/cards/${cardNumber}`);
+          window.dbUpdate(cardRef, { 
+            revealed: false,
+            claimedBy: null
+          }).then(() => {
+            Swal.fire('Tarjeta Reseteada', `La tarjeta #${cardNumber} ahora está libre nuevamente.`, 'success');
+          });
+        }
+      });
+    }
+
+    function reiniciarJuego() {
+      Swal.fire({
+        title: '¿Reiniciar Todo el Juego?',
+        text: 'Se borrarán todos los registros actuales.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#dc2626',
+        confirmButtonText: 'Sí, reiniciar todo'
+      }).then((result) => {
+        if (result.isConfirmed) {
+          localStorage.removeItem('amigoSecreto_usuario');
+          localStorage.removeItem('amigoSecreto_tarjeta');
+          window.dbSet(window.dbRef(window.db, 'amigoSecreto'), null)
+            .then(() => {
+              cerrarAdminModal();
+              document.getElementById('gameView').classList.add('hidden');
+              document.getElementById('adminPanel').classList.remove('hidden');
+              Swal.fire('Reiniciado', 'El juego ha sido reseteado.', 'success');
+            });
+        }
+      });
+    }
+  </script>
+</body>
+</html>
